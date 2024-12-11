@@ -1,0 +1,152 @@
+<div style="height: 100%; padding-top: 6px">
+  <div class="filters-body">
+    <mat-form-field appearance="outline">
+      <mat-label>Films title filter</mat-label>
+      <input matInput [(ngModel)]="partialFilmTitleInput" />
+      @if (partialFilmTitleInput) {
+      <button matSuffix mat-icon-button (click)="clearPartialFilmTitle()">
+        <mat-icon>close</mat-icon>
+      </button>
+      }
+      <button
+        matSuffix
+        mat-icon-button
+        (click)="searchFilmsByTitle(partialFilmTitleInput)"
+      >
+        <mat-icon>search</mat-icon>
+      </button>
+    </mat-form-field>
+    @if( options.partialFilmTitle === undefined){
+    <mat-form-field appearance="outline">
+      <mat-label>Sort...</mat-label>
+      <mat-select [formControl]="sortFieldDisplay">
+        <mat-option value="Title" (click)="setSortField('Title')"
+          >Title</mat-option
+        >
+        <mat-option value="Release date" (click)="setSortField('Release date')"
+          >Release date</mat-option
+        >
+      </mat-select>
+      @if(options.sortField !== undefined) {
+      <button matSuffix mat-icon-button (click)="setSortField()">
+        <mat-icon>close</mat-icon>
+      </button>
+      } @if(options.sortField !== undefined) {
+      <button mat-icon-button matSuffix>
+        @if(isArrowUp){
+        <mat-icon>arrow_upward</mat-icon>
+        } @else {
+        <mat-icon>arrow_downward</mat-icon>
+        }
+      </button>
+      }
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Print desired year</mat-label>
+      <input matInput [formControl]="filmYear" type="number" />
+      @if (filmYear.value) {
+      <button matSuffix mat-icon-button (click)="updateYear(true)">
+        <mat-icon>close</mat-icon>
+      </button>
+      }
+      <button matSuffix mat-icon-button (click)="updateYear()">
+        <mat-icon>search</mat-icon>
+      </button>
+    </mat-form-field>
+    <mat-card class="marks-card">
+      <mat-card-content>
+        <mat-form-field appearance="outline">
+          <mat-label>Min mark </mat-label>
+          <input matInput [formControl]="minMark" type="number" />
+          @if (minMark.value) {
+          <button
+            matSuffix
+            mat-icon-button
+            (click)="setMarks({ maxMark: 1, minVotes: 1 })"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+          }
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Max mark </mat-label>
+          <input matInput [formControl]="maxMark" type="number" />
+          @if (maxMark.value) {
+          <button
+            matSuffix
+            mat-icon-button
+            (click)="setMarks({ minVotes: 1, minMark: 1 })"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+          }
+        </mat-form-field>
+      </mat-card-content>
+      <mat-card-footer align="center">
+        <mat-form-field appearance="outline">
+          <mat-label>Min votes </mat-label>
+          <input matInput [formControl]="minVotes" type="number" />
+          @if (minVotes.value) {
+          <button
+            matSuffix
+            mat-icon-button
+            (click)="setMarks({ maxMark: 1, minMark: 1 })"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+          }
+        </mat-form-field>
+      </mat-card-footer>
+      <mat-card-actions align="end">
+        @if(minMark.value || maxMark.value || minVotes.value){
+        <button mat-icon-button (click)="setMarks({})">
+          <mat-icon>close</mat-icon>
+        </button>
+        }
+        <button
+          mat-icon-button
+          (click)="setMarks({ minMark: 1, maxMark: 1, minVotes: 1 })"
+        >
+          <mat-icon>search</mat-icon>
+        </button>
+      </mat-card-actions>
+    </mat-card>
+    <mat-form-field appearance="outline">
+      <input matInput (click)="openGenresSelectionDialog()" />
+      @if(options.genres !== undefined){
+      <mat-label>{{ options.genres.length }} selected</mat-label>
+      } @else {
+      <mat-label>Select genres for filtering</mat-label>
+      } @if(options.genres !== undefined){
+      <button
+        matSuffix
+        mat-icon-button
+        (click)="updateQuery({ genres: undefined })"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+      }
+    </mat-form-field>
+    }
+  </div>
+  @if(filmsResult$ | async; as filmsResult) {
+  <div class="films-body">
+    <div class="films-list">
+      @for (film of filmsResult.items; track $index) {
+      <app-film-card [film]="film" class="card" />
+      }
+    </div>
+    <mat-paginator
+      [length]="filmsResult.totalCount"
+      [pageSize]="options.pageSize"
+      [pageIndex]="options.pageIndex"
+      aria-label="Select page"
+      (page)="
+        updateQuery({
+          pageIndex: $event.pageIndex
+        })
+      "
+    ></mat-paginator>
+  </div>
+  }
+</div>
