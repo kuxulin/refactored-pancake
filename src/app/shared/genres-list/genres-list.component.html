@@ -1,0 +1,27 @@
+<div>
+  <h2 mat-dialog-title>Selecting genres</h2>
+  <mat-dialog-content>
+    @if(selectedGenres.length > 0){
+    <span>Selected:</span>
+    <mat-chip-set>
+      @for(genre of selectedGenres; track $index){
+      <mat-chip (removed)="removeGenreFromSelected(genre)"
+        >{{ genre.name }}
+        <mat-icon matChipRemove>cancel</mat-icon>
+      </mat-chip>
+      }
+    </mat-chip-set>
+
+    } @if(availableGenres$ | async; as availableGenres) {
+    <span>Available genres:</span>
+    <mat-chip-set>
+      @for(genre of availableGenres; track $index){
+      <mat-chip (click)="addGenreToSelected(genre)">{{ genre.name }}</mat-chip>
+      }
+    </mat-chip-set>
+    }
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    <button mat-flat-button (click)="sendGenres()">Submit</button>
+  </mat-dialog-actions>
+</div>
