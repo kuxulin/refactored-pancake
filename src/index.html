@@ -1,17 +1,248 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Films</title>
-    <base href="/" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
-    <link
-      href="https://fonts.googleapis.com/icon?family=Material+Icons"
-      rel="stylesheet"
-    />
-  </head>
-  <body>
-    <app-root></app-root>
-  </body>
+<head>
+  <meta charset="utf-8"/>
+  <title>Films</title>
+  <base href="/"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="icon" type="image/x-icon" href="favicon.ico"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <style>
+    #chat-window {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 100%;
+      max-width: 350px;
+      height: 50%;
+      border: 1px solid #ccc;
+      border-radius: 15px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      background-color: white;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .card-body {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 10px;
+    }
+
+    #chat-box {
+      flex: 1;
+      max-height: 80%;
+      overflow-y: auto;
+      font-size: 14px;
+    }
+
+    .input-group {
+      display: flex;
+      padding: 10px;
+      border-top: 1px solid #ccc;
+      background-color: white;
+      margin-top: auto;
+    }
+
+    #user-input {
+      border-radius: 15px 0 0 15px;
+      flex: 1;
+      height: 40px;
+    }
+
+    .btn-primary, .btn-microphone {
+      border-radius: 0 15px 15px 0;
+      height: 40px;
+    }
+
+    .btn-microphone {
+      margin-left: 5px;
+      background-color: #cccccc;
+      border: none;
+    }
+
+    .btn-microphone.active {
+      background-color: red;
+      color: black;
+    }
+
+    .message-container strong {
+      font-size: 14px;
+      color: #007bff;
+    }
+
+    .message-container span {
+      font-size: 14px;
+      display: inline-block;
+      margin-left: 5px;
+    }
+
+    #chat-box::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    #chat-box::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+    }
+
+    #chat-box::-webkit-scrollbar-track {
+      background-color: #f1f1f1;
+    }
+  </style>
+</head>
+<script src="https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js"></script>
+<script>
+  let mediaRecorder;
+  let audioChunks = [];
+
+  document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("send-btn").addEventListener("click", sendMessage);
+    document.getElementById("user-input").addEventListener("keypress", function (event) {
+      if (event.key === "Enter") sendMessage();
+    });
+  });
+
+  async function sendMessage() {
+    const userInput = document.getElementById("user-input").value;
+    if (!userInput) return;
+
+    appendMessage("You", userInput);
+    document.getElementById("user-input").value = "";
+
+    const response = await fetch('http://localhost:3000/ask', {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({message: userInput}),
+    });
+
+    const data = await response.json();
+
+    appendMessage("Assistant", data.reply);
+  }
+
+  function appendMessage(sender, message) {
+    const converter = new showdown.Converter();
+    const htmlMessage = converter.makeHtml(message);
+    const chatBox = document.getElementById("chat-box");
+    const messageElement = document.createElement("div");
+    messageElement.classList.add("message-container");
+
+    const senderElement = document.createElement("strong");
+    senderElement.textContent = sender + ": ";
+    messageElement.appendChild(senderElement);
+
+    const messageText = document.createElement("div");
+    messageText.innerHTML = htmlMessage;
+    messageElement.appendChild(messageText);
+
+    if (sender === "Assistant") {
+      const speakButton = document.createElement("button");
+      speakButton.textContent = "🔊";
+      speakButton.classList.add("btn", "btn-sm", "btn-light");
+      speakButton.addEventListener("click", () => {
+        const utterance = new SpeechSynthesisUtterance(message);
+        speechSynthesis.speak(utterance);
+      });
+      messageElement.appendChild(speakButton);
+    }
+
+    chatBox.appendChild(messageElement);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  async function startRecording() {
+    const microphoneBtn = document.getElementById("microphone-btn");
+    const sendBtn = document.getElementById("send-btn");
+    const userInput = document.getElementById("user-input");
+    if (microphoneBtn.classList.contains('active')) {
+      stopRecording();
+    } else {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Your browser does not support audio recording!');
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+      mediaRecorder = new MediaRecorder(stream, {mimeType: 'audio/mp4'});
+
+      mediaRecorder.onstart = () => {
+        audioChunks = [];
+        microphoneBtn.classList.add("active");
+        userInput.placeholder = 'Recording...'
+        userInput.disabled = true;
+        sendBtn.disabled = true;
+      };
+
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+
+      mediaRecorder.start();
+
+      setTimeout(() => stopRecording(), 5000);
+    }
+  }
+
+  function stopRecording() {
+    mediaRecorder.onstop = async () => {
+      const audioBlob = new Blob(audioChunks, {type: 'audio/mp4'});
+      const formData = new FormData();
+
+      formData.append('audio', audioBlob, 'voice-message.m4a');
+
+      try {
+        await fetch('http://localhost:3000/transcript', {
+          method: 'POST',
+          body: formData,
+        }).then(response => response.json())
+          .then(async data => {
+            let message = data.text.trim();
+            message = message.charAt(0).toUpperCase() + message.slice(1).toLowerCase();
+            appendMessage("You", message);
+            await fetch('http://localhost:3000/ask', {
+              method: "POST",
+              headers: {"Content-Type": "application/json"},
+              body: JSON.stringify({message: message})
+            })
+              .then(response => response.json())
+              .then(data => appendMessage("Assistant", data.reply))
+              .catch(console.error);
+          });
+      } catch (error) {
+        console.error(error);
+      }
+
+      document.getElementById("microphone-btn").classList.remove("active");
+      document.getElementById("user-input").placeholder = 'Ask something...'
+      document.getElementById("user-input").disabled = false;
+      document.getElementById("send-btn").disabled = false;
+    };
+    mediaRecorder.stop();
+  }
+</script>
+<body>
+<app-root></app-root>
+<div id="chat-window">
+  <div class="card-body">
+    <h4>Assistant</h4>
+    <div id="chat-box" class="mb-3"></div>
+    <div class="input-group">
+      <input type="text" id="user-input" class="form-control" placeholder="Ask something..."
+             aria-label="User input">
+      <button class="btn btn-primary" id="send-btn">Send</button>
+      <button class="btn btn-microphone" id="microphone-btn" onclick="startRecording()">
+        <i class="fas fa-microphone"></i>
+      </button>
+    </div>
+  </div>
+</div>
+</body>
 </html>
