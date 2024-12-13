@@ -94,6 +94,24 @@
     #chat-box::-webkit-scrollbar-track {
       background-color: #f1f1f1;
     }
+
+    #toggle-chat-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: transparent;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding-top: 0;
+      padding-bottom: 0;
+      border: none;
+    }
+    #chat-window.minimized {
+      height: 50px;
+      width: 350px;
+      bottom: 20px;
+    }
   </style>
 </head>
 <script src="https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js"></script>
@@ -227,12 +245,30 @@
     };
     mediaRecorder.stop();
   }
+  document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("toggle-chat-btn").addEventListener("click", function() {
+      const chatWindow = document.getElementById("chat-window");
+      const chatBox = document.getElementById("chat-box");
+      const isMinimized = chatWindow.classList.contains("minimized");
+
+      if (isMinimized) {
+        chatWindow.classList.remove("minimized");
+        chatBox.style.display = "block";
+        this.innerHTML = "▼";
+      } else {
+        chatWindow.classList.add("minimized");
+        chatBox.style.display = "none";
+        this.innerHTML = "▲";
+      }
+    });
+  });
 </script>
 <body>
 <app-root></app-root>
 <div id="chat-window">
   <div class="card-body">
-    <h4>Assistant</h4>
+    <h4>Assistant <button id="toggle-chat-btn" class="btn btn-light">▼</button></h4>
+
     <div id="chat-box" class="mb-3"></div>
     <div class="input-group">
       <input type="text" id="user-input" class="form-control" placeholder="Ask something..."
